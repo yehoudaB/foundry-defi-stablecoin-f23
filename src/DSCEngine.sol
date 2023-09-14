@@ -109,7 +109,20 @@ contract DSCEngine is ReentrancyGuard {
     //// external functions //
     /////////////////////////
 
-    function depositeCollateralAndMintDSC(uint256 _amount) external {}
+    /*
+     * @param _tokenCollateralAddress the address of the token to deposite as collateral.
+     * @param _amount The amount of collateral to  deposite.
+     * @param _amountDscToMint The amount of Dsc to mint.
+     * @notice this function will deposite collateral and mint DSC in one transaction.
+     */
+    function depositeCollateralAndMintDSC(
+        address _tokenCollateralAddress,
+        uint256 _amountCollateral,
+        uint256 _amountDscToMint
+    ) external {
+        depositeCollateral(_tokenCollateralAddress, _amountCollateral);
+        mintDsc(_amountDscToMint);
+    }
 
     /*
      * @notice Follows CEI pattern
@@ -117,7 +130,7 @@ contract DSCEngine is ReentrancyGuard {
      * @param _amount The amount of collateral to  deposite.
      */
     function depositeCollateral(address _tokenCollateralAddress, uint256 _amountCollateral)
-        external
+        public
         moreThanZero(_amountCollateral)
         isAllowedCollateral(_tokenCollateralAddress)
         nonReentrant
@@ -137,7 +150,7 @@ contract DSCEngine is ReentrancyGuard {
     * @param _amount The amount of Dsc to mint.
     * @notic they must have more value than the minimum threshold.
     */
-    function mintDsc(uint256 _amountDscToMint) external moreThanZero(_amountDscToMint) nonReentrant {
+    function mintDsc(uint256 _amountDscToMint) public moreThanZero(_amountDscToMint) nonReentrant {
         s_dscMinted[msg.sender] += _amountDscToMint;
         _revertIfHealthFactorBelowThreshold(msg.sender);
         bool minted = i_dsc.mint(msg.sender, _amountDscToMint);
