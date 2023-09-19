@@ -30,20 +30,42 @@ contract DSCEngineTest is Test {
     }
 
     ///////////////////////
+    // Constructor Tests //
+    ///////////////////////
+    address[] public tokensAddresses;
+    address[] public priceFeedsAddresses;
+
+    function testRevertsIfTokenLengthDoesntMatchPriceFeeds() public {
+        tokensAddresses.push(weth);
+        priceFeedsAddresses.push(ethUsdPriceFeed);
+        priceFeedsAddresses.push(wbtcUsdPriceFeed);
+        vm.expectRevert(DSCEngine.DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeEqualLength.selector);
+        new DSCEngine(tokensAddresses, priceFeedsAddresses, address(dsc));
+    }
+
+    ///////////////////////
     // Prices Test ////////
     ///////////////////////
 
     function testGetUsdValue() public {
         uint256 ethAmount = 15e18;
         // 15e18 * 2000 (eth price in usd)  = 30,000e18
-        uint256 expectedEthUsdValue = 30_000e18;
-        uint256 actualEthUsdValue = dscEngine.getUsdValue(weth, ethAmount);
-        assertEq(expectedEthUsdValue, actualEthUsdValue);
+        uint256 expectedUsdAmount = 30_000e18;
+        uint256 actualUsdAmount = dscEngine.getUsdValue(weth, ethAmount);
+        assertEq(expectedUsdAmount, actualUsdAmount);
     }
 
+    function testGetTokenAmountFromUsd() public {
+        uint256 usdAmount = 100e18;
+        // 100e18 / 2000 = 0.05e18
+        uint256 expectedWethAmount = 0.05 ether;
+        uint256 actualWeth = dscEngine.getTokenAmountFromUsd(weth, usdAmount);
+        assertEq(expectedWethAmount, actualWeth);
+    }
     ////////////////////////////////////
     // Deposite collateral Test ////////
     ///////////////////////////////////
+
     function testRevertsIfCollateralZero() public {
         vm.startPrank(USER);
         ERC20Mock(weth).approve(address(dscEngine), AMOUNT_COLLATERAL);
