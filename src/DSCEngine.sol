@@ -328,4 +328,12 @@ contract DSCEngine is ReentrancyGuard {
     function getLiquidationPrecision() external pure returns (uint256) {
         return LIQUIDATION_PRECISION;
     }
+
+    function getCollateralDeposited(address tokenAddress, address user) public view returns (uint256) {
+        return s_collateralDeposited[user][tokenAddress];
+    }
+
+    function getDscMinted(address user) public view returns (uint256) {
+        return s_dscMinted[user];
+    }
 }

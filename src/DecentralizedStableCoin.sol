@@ -46,7 +46,7 @@ contract DecentralizedStableCoin is ERC20Burnable, Ownable {
         if (_amount <= 0) {
             revert DecentralizedStableCoin__MustBeMoreThanZero();
         }
-        if (balance <= _amount) {
+        if (balance < _amount) {
             revert DecentralizedStableCoin__BurnAmountExceedsBalance();
         }
         super.burn(_amount);
