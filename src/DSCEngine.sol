@@ -62,7 +62,7 @@ contract DSCEngine is ReentrancyGuard {
     /// State variables  //
     //////////////////////
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
-    uint256 private constant PRECSION = 1e18;
+    uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // 200% overcollateralized
     uint256 private constant LIQUIDATION_PRECISION = 100;
     uint256 private constant MINIMUM_HEALTH_FACTOR = 1e18;
@@ -221,7 +221,9 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorBelowThreshold(_user);
     }
 
-    function getHealthFactor(address _user) external view returns (uint256) {}
+    function getHealthFactor(address _user) external view returns (uint256) {
+        return _healthFactor(_user);
+    }
 
     ///////////////////////////
     //// internal & private  functions //
@@ -236,18 +238,27 @@ contract DSCEngine is ReentrancyGuard {
         collateralValueInUsd = getAccountCollateralValueInUsd(_user);
     }
 
+    function _healthFactor(address user) private view returns (uint256) {
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+        return _calculateHealthFactor(totalDscMinted, collateralValueInUsd);
+    }
     /*
     * @notice return how close to liquidation the user is.
     * if a user goes below 1, then it can be liquidated. 
     */
-    function _healthFactor(address _user) private view returns (uint256) {
-        (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(_user);
-        uint256 collateralAjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
-        return (collateralAjustedForThreshold * PRECSION) / totalDscMinted;
+
+    function _calculateHealthFactor(uint256 totalDscMinted, uint256 collateralValueInUsd)
+        internal
+        pure
+        returns (uint256)
+    {
+        if (totalDscMinted == 0) return type(uint256).max;
+        uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+        return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
     }
 
-    function _revertIfHealthFactorBelowThreshold(address user) internal view {
-        uint256 userHealthFactor = _healthFactor(user);
+    function _revertIfHealthFactorBelowThreshold(address _user) internal view {
+        uint256 userHealthFactor = _healthFactor(_user);
         if (userHealthFactor < MINIMUM_HEALTH_FACTOR) {
             revert DSCEngine__BreaksHealthFactor(userHealthFactor);
         }
@@ -289,13 +300,17 @@ contract DSCEngine is ReentrancyGuard {
     function getUsdValue(address _token, uint256 _amount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeed[_token]);
         (, int256 price,,,) = priceFeed.latestRoundData();
-        return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * _amount) / PRECSION;
+        // 1 ETH = 1000 USD
+        // The returned value from Chainlink will be 1000 * 1e8
+        // Most USD pairs have 8 decimals, so we will just pretend they all do
+        // We want to have everything in terms of WEI, so we add 10 zeros at the end
+        return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * _amount) / PRECISION;
     }
 
     function getTokenAmountFromUsd(address _token, uint256 _usdAmountInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeed[_token]);
         (, int256 price,,,) = priceFeed.latestRoundData();
-        return (_usdAmountInWei * PRECSION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
+        return (_usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
     function getAccountInformation(address _user)
@@ -304,5 +319,13 @@ contract DSCEngine is ReentrancyGuard {
         returns (uint256 totalDscMinted, uint256 collateralValueInUsd)
     {
         (totalDscMinted, collateralValueInUsd) = _getAccountInformation(_user);
+    }
+
+    function getLiquidationThreshold() external pure returns (uint256) {
+        return LIQUIDATION_THRESHOLD;
+    }
+
+    function getLiquidationPrecision() external pure returns (uint256) {
+        return LIQUIDATION_PRECISION;
     }
 }
