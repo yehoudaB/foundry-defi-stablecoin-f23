@@ -336,4 +336,8 @@ contract DSCEngine is ReentrancyGuard {
     function getDscMinted(address user) public view returns (uint256) {
         return s_dscMinted[user];
     }
+
+    function getLiquidationBonus() external pure returns (uint256) {
+        return LIQUIDATION_BONUS;
+    }
 }
