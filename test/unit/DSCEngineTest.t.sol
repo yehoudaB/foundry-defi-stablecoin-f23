@@ -95,7 +95,7 @@ contract DSCEngineTest is Test {
         assertEq(AMOUNT_COLLATERAL, expectedDepositedAmount);
     }
 
-    function testCannotMintDscIfCollateralIsBelowThreshold() public depositeCollateral {
+    function testCannotMintMoreDscThanCollateralValue() public depositeCollateral {
         (, uint256 collateralValueInUsd) = dscEngine.getAccountInformation(USER);
         uint256 allowedAmountToBorrow =
             collateralValueInUsd * dscEngine.getLiquidationThreshold() / dscEngine.getLiquidationPrecision();
@@ -147,8 +147,10 @@ contract DSCEngineTest is Test {
     //////////////////////////////
 
     function testUserCannotRedeemCollateralIfHealthFactorIsBelowThreshold() public depositeCollateral {
+        vm.startPrank(USER);
         vm.expectRevert(DSCEngine.DSCEngine__BreaksHealthFactor.selector);
         dscEngine.redeemCollateral(weth, AMOUNT_COLLATERAL);
+        vm.stopPrank();
     }
 
     function testRevertsReedemCollateralIfNotEnoughCollateral() public {
@@ -199,6 +201,11 @@ contract DSCEngineTest is Test {
         vm.stopPrank();
     }
 
+    function testCanLiquidateUserIfHealthFactorIsBelowThreshold() public liquidated {
+        uint256 userHealthFactor = dscEngine.getHealthFactor(USER);
+        console.log("userHealthFactor", userHealthFactor);
+    }
+
     modifier liquidated() {
         vm.startPrank(USER);
         ERC20Mock(weth).approve(address(dscEngine), AMOUNT_COLLATERAL);
@@ -215,7 +222,9 @@ contract DSCEngineTest is Test {
         ERC20Mock(weth).approve(address(dscEngine), COLLATERAL_TO_COVER);
         dscEngine.depositeCollateralAndMintDSC(weth, COLLATERAL_TO_COVER, AMOUNT_TO_MINT);
         dsc.approve(address(dscEngine), AMOUNT_TO_MINT);
-        dscEngine.liquidate(weth, USER, AMOUNT_TO_MINT); // We are covering their whole debt
+        uint256 liquidatorHealthFactor = dscEngine.getHealthFactor(LIQUIDATOR);
+        console.log("user", USER, "Liquidator", LIQUIDATOR);
+        dscEngine.liquidate(USER, weth, AMOUNT_TO_MINT); // We are covering their whole debt
         vm.stopPrank();
         _;
     }

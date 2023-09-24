@@ -51,7 +51,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeEqualLength();
     error DSCEngine__MustBeAllowedCollateral();
     error DSCEngine__DepositeCollateralFailed();
-    error DSCEngine__BreaksHealthFactor(uint256 _healthFactor);
+    error DSCEngine__BreaksHealthFactor();
     error DSCEngine__MintDscFailed();
     error DSCEngine__RedeemCollateralFailed();
     error DSCEngine__TransferFailed();
@@ -86,7 +86,7 @@ contract DSCEngine is ReentrancyGuard {
     //////////////////
 
     modifier moreThanZero(uint256 _amount) {
-        if (_amount <= 0) {
+        if (_amount == 0) {
             revert DSCEngine__MustBeMoreThanZero();
         }
         _;
@@ -206,6 +206,7 @@ contract DSCEngine is ReentrancyGuard {
         nonReentrant
     {
         uint256 startingUserHealthFactor = _healthFactor(_user);
+
         if (startingUserHealthFactor >= MINIMUM_HEALTH_FACTOR) {
             revert DSCEngine__HealthFactorOk();
         }
@@ -260,7 +261,7 @@ contract DSCEngine is ReentrancyGuard {
     function _revertIfHealthFactorBelowThreshold(address _user) internal view {
         uint256 userHealthFactor = _healthFactor(_user);
         if (userHealthFactor < MINIMUM_HEALTH_FACTOR) {
-            revert DSCEngine__BreaksHealthFactor(userHealthFactor);
+            revert DSCEngine__BreaksHealthFactor();
         }
     }
 
