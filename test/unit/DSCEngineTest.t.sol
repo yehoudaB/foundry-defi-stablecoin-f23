@@ -146,7 +146,7 @@ contract DSCEngineTest is Test {
     // redeemCollateral Tests /////
     //////////////////////////////
 
-    function testUserCannotRedeemCollateralIfHealthFactorIsBelowThreshold() public depositeCollateral {
+    function testUserCannotRedeemCollateralIfHealthFactorIsBelowThreshold() public depositedCollateralAndMintedDsc {
         vm.startPrank(USER);
         vm.expectRevert(DSCEngine.DSCEngine__BreaksHealthFactor.selector);
         dscEngine.redeemCollateral(weth, AMOUNT_COLLATERAL);
