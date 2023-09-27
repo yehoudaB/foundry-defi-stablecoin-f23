@@ -184,6 +184,15 @@ contract DSCEngineTest is Test {
         assertEq(collateralDeposited, 0);
     }
 
+    function testRedeemSpecificAmount() public depositeCollateral {
+        vm.startPrank(USER);
+        ERC20Mock(weth).mint(USER, 256749829215);
+        ERC20Mock(weth).approve(address(dscEngine), 256749829215);
+        dscEngine.depositeCollateral(weth, 256749829215);
+        dscEngine.redeemCollateral(weth, 256749829215);
+        vm.stopPrank();
+    }
+
     ////////////////////////
     // liquidation Tests //
     ////////////////////////
